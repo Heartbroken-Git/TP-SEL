@@ -1,3 +1,10 @@
+/**
+ * @file intercepteur.cpp
+ * @author Corentin CHÉDOTAL
+ * @copyright TBD
+ * @brief Fichier contenant le programme destiné à intercepter un processus et éventuellement à modifier en temps réel du code
+ */
+
 #include <iostream>
 #include <cstdlib> // pour atoi()
 #include <exception>
@@ -7,7 +14,12 @@
 
 using namespace std;
 
-// TODO : Documentation
+/**
+ * @brief Fonction convertissant une chaîne de caractère C représentant un entier en un PID
+ * @param str une chaîne de caractère C représentant un entier
+ * @pre str doit représenter un entier
+ * @todo Mettre en place une exception pour avertir l'utilisateur dans les rares cas où on peut détecter une mauvaise entrée
+ */
 pid_t conversionCharStrToPid(char * str) {
 	int tmp = atoi(str);
 	if (tmp == 0) {
@@ -17,8 +29,10 @@ pid_t conversionCharStrToPid(char * str) {
 	return (pid_t) tmp;
 }
 
-// TODO : Documentation
-// WARNING : Undefined behavior si ce n'est pas un entier en entrée
+/**
+ * @brief Main exécutant le programme d'interception d'un processus dont le PID en donné en entier
+ * @details Utilise PTRACE pour s'attacher et modifie le code d'une fonction donnée en dur (actuellement)
+ */
 int main(int argc, char * argv[]) {
 	
 	// Controle de l'entrée
