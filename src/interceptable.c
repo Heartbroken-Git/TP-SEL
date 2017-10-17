@@ -9,8 +9,8 @@
 #include <unistd.h>
 
 /**
- * @brief Fonction affichant un entier donné en paramère à l'écran
- * @details Fonction dont le code devrait être à terme modififé par l'intercepteur
+ * @brief Fonction affichant un entier donné en paramètre à l'écran
+ * @details Fonction dont le code devrait être à terme modifié par l'intercepteur
  * @param disp un entier devant être affiché sur terminal
  */
 void interceptable(int disp) {
