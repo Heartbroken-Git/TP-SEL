@@ -11,6 +11,11 @@
 #include <sys/ptrace.h>
 #include <sys/types.h> // pour pid_t et signinfo_t
 #include <sys/wait.h> // pour waitid()
+#include <fstream>
+#include <string>
+#include <sstream>
+
+#define ADDR_FN 0x54d
 
 using namespace std;
 
@@ -52,12 +57,22 @@ int main(int argc, char * argv[]) {
 	siginfo_t childInfo;
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
-	// Redémarrage du processus
-	if (ptrace(PTRACE_CONT, pidCible, 0, 0) != 0) {
-		cerr << "ERROR : Error on restarting process" << endl;
+	stringstream ss;
+	ss << "/proc/" << pidCible << "/mem";
+	
+	ofstream memoire(ss.str() , ios::out);
+	memoire.seekp(ADDR_FN, ios::beg);
+	
+	while (1){
+		memoire << "bob" << endl;
+		memoire << "alice" << endl ;
+		memoire << "bob" << endl ;
+	}
+	// Detachement du processus et relance le processus
+	if (ptrace(PTRACE_DETACH, pidCible, 0, 0) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE" << endl;
 		return -1;
 	}
-
 	
 
 	cout << "bob" << endl;
