@@ -7,15 +7,21 @@
 
 #include <iostream>
 #include <cstdlib> // pour atoi()
+#include <cstdio>
+#include <unistd.h>
 #include <exception>
 #include <sys/ptrace.h>
 #include <sys/types.h> // pour pid_t et signinfo_t
 #include <sys/wait.h> // pour waitid()
+#include <sys/stat.h>
+#include <errno.h>
+#include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <string>
 #include <sstream>
 
-#define ADDR_FN 0x54d
+const long ADDR_FN = 400546;
 
 using namespace std;
 
@@ -54,20 +60,43 @@ int main(int argc, char * argv[]) {
 		cerr << "ERROR : Undefined error on PTRACE" << endl;
 		return -1;
 	}
-	siginfo_t childInfo;
-	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
 	stringstream ss;
 	ss << "/proc/" << pidCible << "/mem";
 	
-	ofstream memoire(ss.str() , ios::out);
-	memoire.seekp(ADDR_FN, ios::beg);
+	siginfo_t childInfo;
+	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
+	char path[30];
+	ss.get(path, 30);
+	
+	//cout << path << endl;
+	
+	int memoire = open(path, O_WRONLY);
+	
+	//fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
+	signed char trap = {0xCC};
+	ssize_t save = pwrite(memoire, &trap, sizeof(trap), ADDR_FN);
+	
+	cout << save << endl;
+	
+	if (save < 0){
+		cout << "Erreur lors de l'ecriture" << endl;
+		cout << strerror(errno) << endl; 
+	}
+	
+	/*fseek(memoire, ADDR_FN, SEEK_SET);
+	fgets(memoire);*/
+	
+	//ofstream memoire(ss.str() , ios::out);
+	/*memoire.seekp(ADDR_FN, ios::beg);
+	memoire.seekp(ADDR_FN, ios::beg);
+	printf(memoire);
 	while (1){
 		memoire << "bob" << endl;
 		memoire << "alice" << endl ;
 		memoire << "bob" << endl ;
-	}
+	}*/
 	// Detachement du processus et relance le processus
 	if (ptrace(PTRACE_DETACH, pidCible, 0, 0) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE" << endl;
