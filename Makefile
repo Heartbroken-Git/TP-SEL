@@ -3,7 +3,8 @@ all: interceptable intercepteur docs
 interceptable:
 	gcc src/interceptable.c -o bin/interceptable -Wall -Werror
 intercepteur:
-	gcc src/intercepteur.c -o bin/intercepteur -Wall -Werror
+	g++ -std=c++11 src/intercepteur.cpp -o bin/intercepteur -Wall -Werror
+
 docs:
 	doxygen Doxyfile
 clean:
