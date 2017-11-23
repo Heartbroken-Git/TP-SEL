@@ -61,15 +61,14 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	//stringstream ss;
-	//ss << "/proc/" << pidCible << "/mem";
+	system("");
+	
 	char path[30];
 	sprintf(path, "/proc/%s/mem", argv[1]);
 	
 	siginfo_t childInfo;
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
-	//cout << path << endl;
 	
 	FILE *memoire = fopen(path, "w");
 	fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
@@ -89,8 +88,6 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-
-	cout << "bob" << endl;
 
 	return 0;
 }
