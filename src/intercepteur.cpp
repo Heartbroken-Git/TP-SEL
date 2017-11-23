@@ -21,7 +21,7 @@
 #include <string>
 #include <sstream>
 
-const long ADDR_FN = 400546;
+const long ADDR_FN = 0x400546;
 
 using namespace std;
 
@@ -61,42 +61,28 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	stringstream ss;
-	ss << "/proc/" << pidCible << "/mem";
+	//stringstream ss;
+	//ss << "/proc/" << pidCible << "/mem";
+	char path[30];
+	sprintf(path, "/proc/%s/mem", argv[1]);
 	
 	siginfo_t childInfo;
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
-	char path[30];
-	ss.get(path, 30);
-	
 	//cout << path << endl;
 	
-	int memoire = open(path, O_WRONLY);
+	FILE *memoire = fopen(path, "w");
+	fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
+	char trap = 0xCC;
+	size_t save = fwrite(&trap, sizeof(char), 1, memoire);
 	
-	//fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
-	signed char trap = {0xCC};
-	ssize_t save = pwrite(memoire, &trap, sizeof(trap), ADDR_FN);
-	
-	cout << save << endl;
+	cout << save << trap << endl;
 	
 	if (save < 0){
 		cout << "Erreur lors de l'ecriture" << endl;
 		cout << strerror(errno) << endl; 
 	}
 	
-	/*fseek(memoire, ADDR_FN, SEEK_SET);
-	fgets(memoire);*/
-	
-	//ofstream memoire(ss.str() , ios::out);
-	/*memoire.seekp(ADDR_FN, ios::beg);
-	memoire.seekp(ADDR_FN, ios::beg);
-	printf(memoire);
-	while (1){
-		memoire << "bob" << endl;
-		memoire << "alice" << endl ;
-		memoire << "bob" << endl ;
-	}*/
 	// Detachement du processus et relance le processus
 	if (ptrace(PTRACE_DETACH, pidCible, 0, 0) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE" << endl;
