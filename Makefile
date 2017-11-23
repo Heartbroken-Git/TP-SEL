@@ -12,5 +12,5 @@ clean:
 mrproper: clean
 	rm -f bin/intercepteur
 	rm -f bin/interceptable
-	rm -f -r docs/*
+	rm -f -r docs
 
