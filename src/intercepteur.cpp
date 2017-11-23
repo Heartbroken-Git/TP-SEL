@@ -29,17 +29,31 @@ using namespace std;
  * @brief Fonction convertissant une chaîne de caractère C représentant un entier en un PID
  * @param str une chaîne de caractère C représentant un entier
  * @pre str doit représenter un entier
+ * @warning Comportement indéfini si str est une chaîne ne contenant pas un entier. Une tentative de vérification d'entrée est en place mais elle ne doit en aucun cas constituer une preuve de bon fonctionnement si aucune erreur n'est retournée.
  * @todo Mettre en place une exception pour avertir l'utilisateur dans les rares cas où on peut détecter une mauvaise entrée
  */
 pid_t conversionCharStrToPid(char * str) {
 	int tmp = atoi(str);
 	if (tmp == 0) {
-		cerr << "ERROR : Incorrect pid \a" << endl;
+		cerr << "ERROR : Incorrect input char str \a" << endl;
 		// TODO : Une vraie exception des familles
 	} 
 	return (pid_t) tmp;
 }
 
+/**
+ * @brief Fonction convertissant une chaîne de caractère C représentant un entier en un type de size_t
+ * @details Pour éviter des doublons de code utilise la fonction conversionCharStrToPid avec un pid_t comme représentation intermédiaire
+ * @param str une chaîne de caractère C représentant un entier
+ * @pre str doit représenter un entier
+ * @warning Comportement indéfini si str est une chaîne ne contenant pas un entier. Une tentative de vérification d'entrée est en place mais elle ne doit en aucun cas constituer une preuve de bon fonctionnement si aucune erreur n'est retournée.
+ * @sa conversionCharStrToPid()
+ */
+size_t conversionCharStrToSize(char * str) {
+	pid_t tmp = conversionCharStrToPid(str);
+	return (size_t) tmp;
+}	
+	
 /**
  * @brief Main exécutant le programme d'interception d'un processus dont le PID en donné en entier
  * @details Utilise PTRACE pour s'attacher et modifie le code d'une fonction donnée en dur (actuellement)
@@ -47,13 +61,16 @@ pid_t conversionCharStrToPid(char * str) {
 int main(int argc, char * argv[]) {
 	
 	// Controle de l'entrée
-	if (argc != 2) {
-		cout << argv[0] << " <pid>" << endl;
-		cout << "Où <pid> est l'identifiant du processus sur lequel il faut tenter de s'attacher." << endl;
+	if (argc != 3) {
+		cout << argv[0] << " <pid> <size>" << endl;
+		cout << "\t <pid> est l'identifiant du processus sur lequel il faut tenter de s'attacher." << endl;
+		cout << "\t <size> est la taille en octets d'espace mémoire à allouer pour le nouveau code." << endl;
 		return -1;
 	}
 
 	pid_t pidCible = conversionCharStrToPid(argv[1]);
+	size_t allocSize = conversionCharStrToSize(argv[2]);
+	cout << "DEBUG - allocSize : " << allocSize << endl;
 
 	// Tentative d'attache
 	if (ptrace(PTRACE_ATTACH, pidCible, 0, 0) != 0) {
