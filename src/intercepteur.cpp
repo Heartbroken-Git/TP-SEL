@@ -149,15 +149,14 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	//stringstream ss;
-	//ss << "/proc/" << pidCible << "/mem";
+	system("");
+	
 	char path[30];
 	sprintf(path, "/proc/%s/mem", argv[1]);
 	
 	siginfo_t childInfo;
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
-	//cout << path << endl;
 	
 	FILE *memoire = fopen(path, "w");
 	fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
@@ -171,14 +170,36 @@ int main(int argc, char * argv[]) {
 		cout << strerror(errno) << endl; 
 	}
 	
+	//Challenge 2
+	
+	void *emplRegs;
+	
+	if (ptrace(PTRACE_GETREGS, pidCible, 0, emplRegs) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE" << endl;
+		return -1;
+	}
+	/*
+	int *posMemoire;
+	size_t alignment = 42;
+	
+	int res = posix_memalign( &posMemoire, alignment, allocSize);
+	//posix_memalign fait de la lib C standard, on peut donc aller chercher avec un objdump de la lib l'emplacement de cette fonction. On l'ajoute après comme le trap avec l'offset (a calculer) 
+	if (res != 0){
+		cout << "Erreur lors de l'allocation de memoire (posix_memalign)" << endl;
+	}
+	*/
+	if (ptrace(PTRACE_SETREGS, pidCible, 0, emplRegs) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE" << endl;
+		return -1;
+	}
+	
+	
 	// Detachement du processus et relance le processus
 	if (ptrace(PTRACE_DETACH, pidCible, 0, 0) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE" << endl;
 		return -1;
 	}
 	
-
-	cout << "bob" << endl;
 
 	return 0;
 }
