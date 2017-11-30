@@ -14,6 +14,7 @@
 #include <sys/types.h> // pour pid_t et signinfo_t
 #include <sys/wait.h> // pour waitid()
 #include <sys/stat.h>
+#include <sys/user.h>
 #include <errno.h>
 #include <cstring>
 #include <fcntl.h>
@@ -74,7 +75,7 @@ int main(int argc, char * argv[]) {
 
 	// Tentative d'attache
 	if (ptrace(PTRACE_ATTACH, pidCible, 0, 0) != 0) {
-		cerr << "ERROR : Undefined error on PTRACE" << endl;
+		cerr << "ERROR : Undefined error on PTRACE_ATTACH" << endl;
 		return -1;
 	}
 	
@@ -86,46 +87,74 @@ int main(int argc, char * argv[]) {
 	siginfo_t childInfo;
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
+	//Challenge 2
+	
+	struct user_regs_struct emplRegs;
+	
+	if (ptrace(PTRACE_GETREGS, pidCible, 0, &emplRegs) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE_GETREGS" << endl;
+		return -1;
+	}
+	
+	struct user_regs_struct emplRegsCopy = emplRegs;
+	/*l'adresse de posix_memalign se recupère en faisant dans l'ordre :
+	-pidof interceptable
+	-cat /proc/pidInterceptable/maps (recherche de la libc)
+	-nm (emplacement libc) /usr/lib64/libc-2.24.so | grep posix_memalign (pour connaitre le code de posix_memalign)
+	*/
 	
 	FILE *memoire = fopen(path, "w");
 	fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
-	char trap = 0xCC;
-	size_t save = fwrite(&trap, sizeof(char), 1, memoire);
-	
-	cout << save << trap << endl;
+	char trap[5] = {(char)0xcc,(char)0xff,(char)0xd0,(char)0xcc};
+	size_t save = fwrite(&trap, 4*sizeof(char), 1, memoire);
 	
 	if (save < 0){
 		cout << "Erreur lors de l'ecriture" << endl;
 		cout << strerror(errno) << endl; 
 	}
 	
-	//Challenge 2
 	
-	void *emplRegs;
-	
-	if (ptrace(PTRACE_GETREGS, pidCible, 0, emplRegs) != 0) {
-		cerr << "ERROR : Undefined error on PTRACE" << endl;
-		return -1;
-	}
 	/*
 	int *posMemoire;
 	size_t alignment = 42;
 	
-	int res = posix_memalign( &posMemoire, alignment, allocSize);
-	//posix_memalign fait de la lib C standard, on peut donc aller chercher avec un objdump de la lib l'emplacement de cette fonction. On l'ajoute après comme le trap avec l'offset (a calculer) 
+	int res = posix_memalign((void**) &posMemoire, alignment, allocSize);
 	if (res != 0){
 		cout << "Erreur lors de l'allocation de memoire (posix_memalign)" << endl;
 	}
 	*/
-	if (ptrace(PTRACE_SETREGS, pidCible, 0, emplRegs) != 0) {
-		cerr << "ERROR : Undefined error on PTRACE" << endl;
+	
+	
+	emplRegs.rsp -= 8;
+	
+	if (ptrace(PTRACE_POKETEXT, pidCible, emplRegs.rdi, emplRegs.rsp) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE_POKETEXT" << endl;
+		return -1;
+	}
+	
+	emplRegs.rax = 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
+	//emplRegs.rdi = ; //Parametre 1 de posix_memalign()
+	emplRegs.rsi = 42; //Parametre 2 de posix_memalign()
+	emplRegs.rdx = allocSize; //Parametre 3 de posix_memalign()
+	
+	
+	if (ptrace(PTRACE_SETREGS, pidCible, 0, &emplRegs) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE_SETREGS" << endl;
 		return -1;
 	}
 	
 	
+	
+	emplRegs = emplRegsCopy;
+	
+	if (ptrace(PTRACE_SETREGS, pidCible, 0, &emplRegs) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE_SETREGS" << endl;
+		return -1;
+	}
+	
 	// Detachement du processus et relance le processus
 	if (ptrace(PTRACE_DETACH, pidCible, 0, 0) != 0) {
-		cerr << "ERROR : Undefined error on PTRACE" << endl;
+		cerr << "ERROR : Undefined error on PTRACE_DETACH" << endl;
 		return -1;
 	}
 	
