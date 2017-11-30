@@ -28,6 +28,7 @@ using namespace std;
 /**
  * @brief Fonction convertissant une chaîne de caractère C représentant un entier en un PID
  * @param str une chaîne de caractère C représentant un entier
+ * @return l'entier représenté dans str dans le type pid_t
  * @pre str doit représenter un entier
  * @warning Comportement indéfini si str est une chaîne ne contenant pas un entier. Une tentative de vérification d'entrée est en place mais elle ne doit en aucun cas constituer une preuve de bon fonctionnement si aucune erreur n'est retournée.
  * @todo Mettre en place une exception pour avertir l'utilisateur dans les rares cas où on peut détecter une mauvaise entrée
@@ -45,6 +46,7 @@ pid_t conversionCharStrToPid(char * str) {
  * @brief Fonction convertissant une chaîne de caractère C représentant un entier en un type de size_t
  * @details Pour éviter des doublons de code utilise la fonction conversionCharStrToPid avec un pid_t comme représentation intermédiaire
  * @param str une chaîne de caractère C représentant un entier
+ * @return l'entier représenté par str dans le type C size_t
  * @pre str doit représenter un entier
  * @warning Comportement indéfini si str est une chaîne ne contenant pas un entier. Une tentative de vérification d'entrée est en place mais elle ne doit en aucun cas constituer une preuve de bon fonctionnement si aucune erreur n'est retournée.
  * @sa conversionCharStrToPid()
@@ -52,7 +54,73 @@ pid_t conversionCharStrToPid(char * str) {
 size_t conversionCharStrToSize(char * str) {
 	pid_t tmp = conversionCharStrToPid(str);
 	return (size_t) tmp;
-}	
+}
+
+/**
+ * @brief Fonction récupérant l'adresse d'une fonction donnée dans un code exécutable fourni en entrée
+ * @details Utilise les commandes UNIX ps, grep et cut pour récupérer l'adresse et la préparer pour le programme en C++, le tout dans un pipeline
+ * @param nomFichier une chaîne de caractère C donnant le nom du fichier exécutable à explorer
+ * @param nomFonction nom de la fonction à retrouver dans le code exécutable
+ * @return l'adresse de la fonction au format long
+ * @pre Le fichier et la fonction donnés en entrée doivent exister
+ * @note En l'état actuel la fonction n'a accès qu'aux exécutables présent dans le dossier "bin"
+ */
+long recupAdresseFonction(char * nomFichier, char * nomFonction) {
+	FILE *in;
+	string cmd;
+	char buff[17];
+	
+	
+	cmd = "nm bin/";
+	string var(nomFichier);
+	cmd += var;
+	cmd += " | grep ";
+	string var2(nomFonction);
+	cmd += var2;
+	cmd += " | cut -b-16";
+	
+	
+	if(!(in = popen(cmd.c_str(), "r"))) {
+		cerr << "ERROR : Undefined error upon opening pipe" << endl;
+		return(-1);
+	}
+	
+	if (fgets(buff, sizeof(buff), in) == NULL) {
+		cerr << "ERROR : Empty buffer" << endl;
+		return(-2);
+	}
+	
+	return atol(buff);
+}
+
+/**
+ * @brief Fonction récupérant le PID fourni par l'OS d'un processus dont le nom est donné en entrée
+ * @details Fait appel à la commande UNIX pidof utilisée dans un pipeline. Retourne le PID donné par le système d'exploitation au processus si celui-ci tourne effectivement sur la machine.
+ * @param nomFichier chaîne de caractère C du nom du processus
+ * @return le pid_t du processus donné en entrée
+ * @pre Le processus dont le nom est donné en entrée doit effectivement exister et être en cours d'exécution
+ */
+pid_t recupNoProcessus(char * nomFichier) {
+	FILE *in;
+	string cmd;
+	char buff[5];
+	
+	cmd = "pidof ";
+	string var(nomFichier);
+	cmd += var;
+	
+	if(!(in = popen(cmd.c_str(), "r"))) {
+		cerr << "ERROR : Undefined error upon opening pipe" << endl;
+		return(-1);
+	}
+	
+	if (fgets(buff, sizeof(buff), in) == NULL) {
+		cerr << "ERROR : Empty buffer" << endl;
+		return(-2);
+	}
+	
+	return (pid_t) atoi(buff);
+}
 	
 /**
  * @brief Main exécutant le programme d'interception d'un processus dont le PID en donné en entier
@@ -71,6 +139,9 @@ int main(int argc, char * argv[]) {
 	pid_t pidCible = conversionCharStrToPid(argv[1]);
 	size_t allocSize = conversionCharStrToSize(argv[2]);
 	cout << "DEBUG - allocSize : " << allocSize << endl;
+	
+	cout << "DEBUG - addr : " << recupAdresseFonction("interceptable", "interceptable") << endl;
+	cout << "DEBUG - noProcess : " << recupNoProcessus("interceptable") << endl;
 
 	// Tentative d'attache
 	if (ptrace(PTRACE_ATTACH, pidCible, 0, 0) != 0) {
