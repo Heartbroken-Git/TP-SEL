@@ -21,7 +21,7 @@
 #include <string>
 #include <sstream>
 
-const long ADDR_FN = 0x400546;
+//const long ADDR_FN = 0x400546;
 
 using namespace std;
 
@@ -32,6 +32,7 @@ using namespace std;
  * @pre str doit représenter un entier
  * @warning Comportement indéfini si str est une chaîne ne contenant pas un entier. Une tentative de vérification d'entrée est en place mais elle ne doit en aucun cas constituer une preuve de bon fonctionnement si aucune erreur n'est retournée.
  * @todo Mettre en place une exception pour avertir l'utilisateur dans les rares cas où on peut détecter une mauvaise entrée
+ * @deprecated La collecte du PID se fait désormais par le biais de recupNoProcessus(). La fonction est encore conservée car utilisée par conversionCharStrToSize() pour définir la taille de l'espace à écrire dans l'interceptable. Cependant elle sera supprimée sous peu et conversionCharStrToSize() devra avoir été mise à jour.
  */
 pid_t conversionCharStrToPid(char * str) {
 	int tmp = atoi(str);
@@ -44,7 +45,7 @@ pid_t conversionCharStrToPid(char * str) {
 
 /**
  * @brief Fonction convertissant une chaîne de caractère C représentant un entier en un type de size_t
- * @details Pour éviter des doublons de code utilise la fonction conversionCharStrToPid avec un pid_t comme représentation intermédiaire
+ * @details Pour éviter des doublons de code utilise la fonction conversionCharStrToPid() avec un pid_t comme représentation intermédiaire
  * @param str une chaîne de caractère C représentant un entier
  * @return l'entier représenté par str dans le type C size_t
  * @pre str doit représenter un entier
@@ -129,19 +130,24 @@ pid_t recupNoProcessus(char * nomFichier) {
 int main(int argc, char * argv[]) {
 	
 	// Controle de l'entrée
-	if (argc != 3) {
-		cout << argv[0] << " <pid> <size>" << endl;
-		cout << "\t <pid> est l'identifiant du processus sur lequel il faut tenter de s'attacher." << endl;
+	if (argc != 4) {
+		cout << argv[0] << " <nomFichier> <nomFonction> <size>" << endl;
+		cout << "\t <nomFichier> est le nom du binaire à intercepter. \033[1m Doit être en cours d'exécution.\033[0m" << endl;
+		cout << "\t <nomFonction> est le nom de la fonction du binaire à détourner pour placer le code." << endl;
 		cout << "\t <size> est la taille en octets d'espace mémoire à allouer pour le nouveau code." << endl;
 		return -1;
 	}
 
-	pid_t pidCible = conversionCharStrToPid(argv[1]);
-	size_t allocSize = conversionCharStrToSize(argv[2]);
-	cout << "DEBUG - allocSize : " << allocSize << endl;
+	// Conversion et affectation des entrées
+	pid_t pidCible = recupNoProcessus(argv[1]);
+	const long ADDR_FN = recupAdresseFonction(argv[1],argv[2]);
+	size_t allocSize = conversionCharStrToSize(argv[3]);
 	
-	cout << "DEBUG - addr : " << recupAdresseFonction("interceptable", "interceptable") << endl;
-	cout << "DEBUG - noProcess : " << recupNoProcessus("interceptable") << endl;
+	string debugFuncName = "interceptable";
+	
+	cout << "DEBUG - allocSize : " << allocSize << endl;
+	cout << "DEBUG - addr : " << recupAdresseFonction((char*) debugFuncName.c_str(), (char*) debugFuncName.c_str()) << endl;
+	cout << "DEBUG - noProcess : " << recupNoProcessus((char*)debugFuncName.c_str()) << endl;
 
 	// Tentative d'attache
 	if (ptrace(PTRACE_ATTACH, pidCible, 0, 0) != 0) {
