@@ -1,4 +1,5 @@
 # Fichiers intermédiaires de compilation
 *.o
 
-
+# Répertoire de documentation
+/docs
