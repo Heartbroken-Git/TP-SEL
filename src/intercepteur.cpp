@@ -182,7 +182,7 @@ int main(int argc, char * argv[]) {
 	
 	
 	FILE *memoire = fopen(path, "w");
-	fseek(memoire, 4195654, SEEK_SET); //Se place au niveau de la fonction a modifier
+	fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
 	char trap[5] = {(char)0xcc,(char)0xff,(char)0xd0,(char)0xcc};
 	size_t save = fwrite(&trap, 5*sizeof(char), 1, memoire);
 	
