@@ -105,7 +105,7 @@ long recupAdresseFonction(char * nomFichier, char * nomFonction) {
 pid_t recupNoProcessus(char * nomFichier) {
 	FILE *in;
 	string cmd;
-	char buff[5];
+	char buff[10];
 	
 	cmd = "pidof ";
 	string var(nomFichier);
@@ -144,11 +144,9 @@ int main(int argc, char * argv[]) {
 	const long ADDR_FN = recupAdresseFonction(argv[1],argv[2]);
 	size_t allocSize = conversionCharStrToSize(argv[3]);
 	
-	string debugFuncName = "interceptable";
-	
 	cout << "DEBUG - allocSize : " << allocSize << endl;
-	cout << "DEBUG - addr : " << recupAdresseFonction((char*) debugFuncName.c_str(), (char*) debugFuncName.c_str()) << endl;
-	cout << "DEBUG - noProcess : " << recupNoProcessus((char*)debugFuncName.c_str()) << endl;
+	cout << "DEBUG - addr : " << ADDR_FN << endl;
+	cout << "DEBUG - noProcess : " << pidCible << endl;
 
 	// Tentative d'attache
 	if (ptrace(PTRACE_ATTACH, pidCible, 0, 0) != 0) {
@@ -156,10 +154,10 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	system("");
-	
 	char path[30];
-	sprintf(path, "/proc/%s/mem", argv[1]);
+	sprintf(path, "/proc/%u/mem", pidCible);
+	
+	
 	
 	siginfo_t childInfo;
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
@@ -174,42 +172,43 @@ int main(int argc, char * argv[]) {
 	}
 	
 	struct user_regs_struct emplRegsCopy = emplRegs;
-	/*l'adresse de posix_memalign se recupère en faisant dans l'ordre :
-	-pidof interceptable
-	-cat /proc/pidInterceptable/maps (recherche de la libc)
-	-nm (emplacement libc) /usr/lib64/libc-2.24.so | grep posix_memalign (pour connaitre le code de posix_memalign)
-	*/
+	
 	
 	FILE *memoire = fopen(path, "w");
-	fseek(memoire, ADDR_FN, SEEK_SET); //Se place au niveau de la fonction a modifier
+	fseek(memoire, 0x400546, SEEK_SET); //Se place au niveau de la fonction a modifier
 	char trap[5] = {(char)0xcc,(char)0xff,(char)0xd0,(char)0xcc};
-	size_t save = fwrite(&trap, 4*sizeof(char), 1, memoire);
+	size_t save = fwrite(&trap, 5*sizeof(char), 1, memoire);
 	
 	if (save < 0){
 		cout << "Erreur lors de l'ecriture" << endl;
 		cout << strerror(errno) << endl; 
 	}
 	
-	
 	/*
-	int *posMemoire;
-	size_t alignment = 42;
-	
-	int res = posix_memalign((void**) &posMemoire, alignment, allocSize);
-	if (res != 0){
-		cout << "Erreur lors de l'allocation de memoire (posix_memalign)" << endl;
+	//Permet de se placer au niveau du premier trap
+	if (ptrace(PTRACE_CONT, pidCible, NULL, NULL) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE_CONT (n°1)" << endl;
+		return -1;
 	}
+	
+	
+	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	*/
 	
 	
+	/*l'adresse de posix_memalign se recupère en faisant dans l'ordre :
+	-pidof interceptable
+	-cat /proc/pidInterceptable/maps (recherche de la libc)
+	-nm (emplacement libc) /usr/lib64/libc-2.24.so | grep posix_memalign (pour connaitre le code de posix_memalign)
+	*/
+	
+	emplRegs.rax = 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
 	emplRegs.rsp -= 8;
 	
 	if (ptrace(PTRACE_POKETEXT, pidCible, emplRegs.rdi, emplRegs.rsp) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE_POKETEXT" << endl;
 		return -1;
 	}
-	
-	emplRegs.rax = 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
 	//emplRegs.rdi = ; //Parametre 1 de posix_memalign()
 	emplRegs.rsi = 42; //Parametre 2 de posix_memalign()
 	emplRegs.rdx = allocSize; //Parametre 3 de posix_memalign()
@@ -220,9 +219,15 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	
+	//Permet d'avoir executer la fonction posix_memalign avec les bons paramètres
+	if (ptrace(PTRACE_CONT, pidCible, NULL, NULL) != 0) {
+		cerr << "ERROR : Undefined error on PTRACE_CONT (n°2)" << endl;
+		return -1;
+	}
 	
 	emplRegs = emplRegsCopy;
+	
+	
 	
 	if (ptrace(PTRACE_SETREGS, pidCible, 0, &emplRegs) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE_SETREGS" << endl;
