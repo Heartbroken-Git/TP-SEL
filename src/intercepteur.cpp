@@ -151,9 +151,9 @@ int main(int argc, char * argv[]) {
 	const long ADDR_FN = recupAdresseFonction(argv[1],argv[2]);
 	size_t allocSize = conversionCharStrToSize(argv[3]);
 	
-	cout << "DEBUG - allocSize : " << allocSize << endl;
-	cout << "DEBUG - addr : " << ADDR_FN << endl;
-	cout << "DEBUG - noProcess : " << pidCible << endl;
+	cerr << "DEBUG - allocSize : " << allocSize << endl;
+	cerr << "DEBUG - addr : " << ADDR_FN << endl;
+	cerr << "DEBUG - noProcess : " << pidCible << endl;
 
 	// Tentative d'attache
 	if (ptrace(PTRACE_ATTACH, pidCible, 0, 0) != 0) {
