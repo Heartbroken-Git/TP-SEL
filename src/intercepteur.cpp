@@ -175,26 +175,29 @@ int main(int argc, char * argv[]) {
 	
 	
 	FILE *memoire = fopen(path, "w");
-	fseek(memoire, 0x400546, SEEK_SET); //Se place au niveau de la fonction a modifier
+	fseek(memoire, 4195654, SEEK_SET); //Se place au niveau de la fonction a modifier
 	char trap[5] = {(char)0xcc,(char)0xff,(char)0xd0,(char)0xcc};
 	size_t save = fwrite(&trap, 5*sizeof(char), 1, memoire);
 	
 	if (save < 0){
 		cout << "Erreur lors de l'ecriture" << endl;
-		cout << strerror(errno) << endl; 
+		cout << strerror(errno) << endl;
 	}
 	
-	/*
+	
+	if (fclose(memoire) != 0){
+		cout << "Erreur lors de la fermeture du fichier" << endl;
+		cout << strerror(errno) << endl;
+	}
+	
+	
 	//Permet de se placer au niveau du premier trap
 	if (ptrace(PTRACE_CONT, pidCible, NULL, NULL) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE_CONT (n°1)" << endl;
 		return -1;
 	}
 	
-	
 	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
-	*/
-	
 	
 	/*l'adresse de posix_memalign se recupère en faisant dans l'ordre :
 	-pidof interceptable
@@ -202,7 +205,7 @@ int main(int argc, char * argv[]) {
 	-nm (emplacement libc) /usr/lib64/libc-2.24.so | grep posix_memalign (pour connaitre le code de posix_memalign)
 	*/
 	
-	emplRegs.rax = 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
+	emplRegs.rax = (long int) 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
 	emplRegs.rsp -= 8;
 	
 	if (ptrace(PTRACE_POKETEXT, pidCible, emplRegs.rdi, emplRegs.rsp) != 0) {
@@ -210,8 +213,8 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	//emplRegs.rdi = ; //Parametre 1 de posix_memalign()
-	emplRegs.rsi = 42; //Parametre 2 de posix_memalign()
-	emplRegs.rdx = allocSize; //Parametre 3 de posix_memalign()
+	emplRegs.rsi = (long int) 42; //Parametre 2 de posix_memalign()
+	emplRegs.rdx = (long int) allocSize; //Parametre 3 de posix_memalign()
 	
 	
 	if (ptrace(PTRACE_SETREGS, pidCible, 0, &emplRegs) != 0) {
