@@ -39,7 +39,7 @@ pid_t conversionCharStrToPid(char * str) {
 	int tmp = atoi(str);
 	if (tmp == 0) {
 		cerr << "ERROR : Incorrect input char str \a" << endl;
-		// TODO : Une vraie exception des familles
+		return -1;
 	} 
 	return (pid_t) tmp;
 }
@@ -167,7 +167,7 @@ int main(int argc, char * argv[]) {
 	
 	
 	siginfo_t childInfo;
-	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
+	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus s'arrête bien
 	
 	//Challenge 2
 	
@@ -204,14 +204,7 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
-	
-	/*l'adresse de posix_memalign se recupère en faisant dans l'ordre :
-	-pidof interceptable
-	-cat /proc/pidInterceptable/maps (recherche de la libc)
-	-nm (emplacement libc) /usr/lib64/libc-2.24.so | grep posix_memalign (pour connaitre le code de posix_memalign)
-	*/
-	
+	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus s'arrête bien
 	
 	emplRegs.rax = (long int) 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
 	emplRegs.rsp -= 8;
@@ -219,8 +212,7 @@ int main(int argc, char * argv[]) {
 	if (ptrace(PTRACE_POKETEXT, pidCible, emplRegs.rdi, emplRegs.rsp) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE_POKETEXT" << endl;
 		return -1;
-	}
-	//emplRegs.rdi = ; //Parametre 1 de posix_memalign()
+	} //Parametre 1 de posix_memalign() modifié par ptrace(PTRACE_POKETEXT)
 	emplRegs.rsi = (long int) 42; //Parametre 2 de posix_memalign()
 	emplRegs.rdx = (long int) allocSize; //Parametre 3 de posix_memalign()
 	
@@ -236,11 +228,9 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 	
-	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
+	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus s'arrête bien
 	
 	emplRegs = emplRegsCopy;
-	
-	
 	
 	if (ptrace(PTRACE_SETREGS, pidCible, 0, &emplRegs) != 0) {
 		cerr << "ERROR : Undefined error on PTRACE_SETREGS" << endl;
