@@ -1,7 +1,7 @@
 /**
  * @file interceptable.c
  * @author Corentin CHÉDOTAL
- * @copyright TBD
+ * @copyright LPRAB 1.0
  * @brief Fichier contenant un programme "bateau" destiné à être intercepté
  */
 

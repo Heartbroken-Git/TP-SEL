@@ -1,7 +1,7 @@
 /**
  * @file intercepteur.cpp
  * @author Corentin CHÉDOTAL
- * @copyright TBD
+ * @copyright LPRAB 1.0
  * @brief Fichier contenant le programme destiné à intercepter un processus et éventuellement à modifier en temps réel du code
  */
 
@@ -92,7 +92,14 @@ long recupAdresseFonction(char * nomFichier, char * nomFonction) {
 		return(-2);
 	}
 	
-	return atol(buff);
+	char hexbuff[19];
+	hexbuff[0] = '0';
+	hexbuff[1] = 'x';
+	for (int i = 0; i < 17; i++) {
+		hexbuff[i+2] = buff[i];
+	}
+	
+	return strtol(hexbuff, (char**)0, 0);
 }
 
 /**
