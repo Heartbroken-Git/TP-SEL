@@ -212,6 +212,7 @@ int main(int argc, char * argv[]) {
 	-nm (emplacement libc) /usr/lib64/libc-2.24.so | grep posix_memalign (pour connaitre le code de posix_memalign)
 	*/
 	
+	
 	emplRegs.rax = (long int) 0x88ea0; //Emplacement de posix_memalign dans la libc (a calculer)
 	emplRegs.rsp -= 8;
 	
@@ -234,6 +235,8 @@ int main(int argc, char * argv[]) {
 		cerr << "ERROR : Undefined error on PTRACE_CONT (n°2)" << endl;
 		return -1;
 	}
+	
+	waitid(P_PID, pidCible, &childInfo, WSTOPPED); // Attente que le processus se stoppe bien
 	
 	emplRegs = emplRegsCopy;
 	
