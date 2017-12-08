@@ -187,14 +187,14 @@ int main(int argc, char * argv[]) {
 	size_t save = fwrite(&trap, 5*sizeof(char), 1, memoire);
 	
 	if (save < 0){
-		cout << "Erreur lors de l'ecriture" << endl;
-		cout << strerror(errno) << endl;
+		cerr << "Erreur lors de l'ecriture" << endl;
+		cerr << strerror(errno) << endl;
 	}
 	
 	
 	if (fclose(memoire) != 0){
-		cout << "Erreur lors de la fermeture du fichier" << endl;
-		cout << strerror(errno) << endl;
+		cerr << "Erreur lors de la fermeture du fichier" << endl;
+		cerr << strerror(errno) << endl;
 	}
 	
 	
